@@ -1,4 +1,4 @@
-(ns learning-clojure.core)
+(ns black-jack.core)
 (require '[clojure.string :as string])
 
 (def deck (for [suite [:Spades :Diamonds :Hearts :Clubs] rank (range 1 14)] [rank suite]))
