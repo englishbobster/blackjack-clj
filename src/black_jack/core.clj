@@ -155,9 +155,6 @@
           (do
             (println "Dealer wins this hand!"))
           (dealer-round player-turn))))))
-    
-    
-
 
 (defn -main [& args] ())
 
