@@ -83,7 +83,7 @@
         [l h] (calculate-points hand)]
     (cond
       (= l h) (str "cards: " card-str " -- worth: " h)
-      (= h :bust) (str "cards: " card-str " --worth: " l)
+      (= h :bust) (str "cards: " card-str " -- worth: " l)
       :else (str "cards: " card-str " -- worth: " h " or " l))))
 
 (defn render-hands "Print the hands in a game"
@@ -100,7 +100,9 @@
 
 (defn highest-score "Determine the highest score available among possible scores"
   [score]
-  (reduce #(if (> %1 %2) %1 %2) (filter #(not= :bust %) score)))
+  (->> score
+   (filter #(not= :bust %))
+   (reduce #(if (> %1 %2) %1 %2))))
 
 (defn player-round "The players turn of the hand"
   [game]
