@@ -17,8 +17,8 @@
 (def deck (for [suite [:Clubs :Diamonds :Hearts :Spades] rank (range 1 14)] [rank suite]))
 
 ;cards mapped to cards.png sprite sheet coordinates for later display
-(def card-coord-map (zipmap deck (for [y (range 0 (* 4 card-hieght) (+ card-hieght 1))
-                                       x (range 0 (* 13 card-width) (+ card-width 1))]
+(def card-coord-map (zipmap deck (for [y (range 0 (* 4 card-hieght) card-hieght)
+                                       x (range 0 (* 13 card-width) card-width)]
                                    [x y])))
 
 (defn card-point-value "Calculate card values as tuplet, ace is special case where values differ."
@@ -176,17 +176,16 @@
 
 
 ;;;;;;;;;;;GUI SECTION;;;;;;;;;;;
-(defn load-images "load a bunch of images"
-  [files]
-  (->> files
-   (map #(new java.io.File %1))
-   (map #(javax.imageio.ImageIO/read %1))))
+(defn load-card-images "load the card png"
+  []
+  (let [file (new java.io.File image-file-path)]
+   (javax.imageio.ImageIO/read file)))
     
 
 (defn play-display "mucking about with swing gui and cards"
-  [image-files]
-  (let [images (load-images image-files)
-        panel (game-panel images)
+  [card]
+  (let [image (load-card-images)
+        panel (game-panel image card)
         frame (javax.swing.JFrame.)]
     (doto panel
       (.setFocusable true)
@@ -197,18 +196,17 @@
       (.setVisible true)
       (.setDefaultCloseOperation javax.swing.JFrame/DISPOSE_ON_CLOSE))))
 
-(defn draw-image [gfx [xpos image]]
-  (.drawImage gfx image xpos 100 nil))
+(defn draw-image [gfx card image]
+  (let [[x y] (card-coord-map card)
+        subimage (.getSubimage image x y card-width card-hieght)]
+  (.drawImage gfx subimage 10 100 nil)))
 
-(defn game-panel [images]
+(defn game-panel [image card]
   (proxy [javax.swing.JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (doseq [pos-image (->> images
-                             (map-indexed vector)
-                             (map (fn [[p i]] (vector(* p 20) i))))]
-        (draw-image g pos-image)
-      ))))
+      (draw-image g card image)
+      )))
 
 (defn -main [& args] ())
 
