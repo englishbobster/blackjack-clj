@@ -1,7 +1,25 @@
 (ns black-jack.core)
 (require '[clojure.string :as string])
 
-(def deck (for [suite [:Spades :Diamonds :Hearts :Clubs] rank (range 1 14)] [rank suite]))
+;cards.png is split in to 5 rows
+;clubs
+;diamonds
+;hearts
+;spades
+;jokers and card back
+(def image-file-path "./resources/cards.png")
+;px width of card
+(def card-width 79)
+;px hieght of card
+(def card-hieght 123)
+
+;Standard deck of cards generated in the same order as "cards.png"..no jokers
+(def deck (for [suite [:Clubs :Diamonds :Hearts :Spades] rank (range 1 14)] [rank suite]))
+
+;cards mapped to cards.png sprite sheet coordinates for later display
+(def card-coord-map (zipmap deck (for [y (range 0 (* 4 card-hieght) (+ card-hieght 1))
+                                       x (range 0 (* 13 card-width) (+ card-width 1))]
+                                   [x y])))
 
 (defn card-point-value "Calculate card values as tuplet, ace is special case where values differ."
   [card]
@@ -156,14 +174,14 @@
             (println "Dealer wins this hand!"))
           (dealer-round player-turn))))))
 
-;;;;;; GUI STUFF
 
+;;;;;;;;;;;GUI SECTION;;;;;;;;;;;
 (defn load-images "load a bunch of images"
   [files]
   (->> files
    (map #(new java.io.File %1))
    (map #(javax.imageio.ImageIO/read %1))))
-
+    
 
 (defn play-display "mucking about with swing gui and cards"
   [image-files]
