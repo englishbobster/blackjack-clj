@@ -86,7 +86,7 @@
       (= h :bust) (str "cards: " card-str " -- worth: " l)
       :else (str "cards: " card-str " -- worth: " h " or " l))))
 
-(defn render-hands "Print the hands in a game"
+(defn render-game "Render the current state of the game"
   [game]
   (let [player-hand (:player-hand game)
         dealer-hand (:dealer-hand game)]
@@ -101,8 +101,8 @@
 (defn highest-score "Determine the highest score available among possible scores"
   [score]
   (->> score
-   (filter #(not= :bust %))
-   (reduce #(if (> %1 %2) %1 %2))))
+       (filter #(not= :bust %))
+       (reduce #(if (> %1 %2) %1 %2))))
 
 (defn player-round "The players turn of the hand"
   [game]
@@ -110,19 +110,19 @@
     (if (= cmd "stick")
       game
       (cond
-        (not= cmd "hit")
-        (do
-          (println "what?...you can only stick or hit.")
-          (recur game))
-        :else (let [updated-game (deal-card-to-player game :player-hand)]
-                (if (busted-hand (:player-hand updated-game))
-                  (do
-                    (render-hands updated-game)
-                    (println "Bad Luck -- you lost this hand!")
-                    updated-game)
-                  (do
-                    (render-hands updated-game)
-                    (recur updated-game))))))))
+       (not= cmd "hit")
+       (do
+         (println "what?...you can only stick or hit.")
+         (recur game))
+       :else (let [updated-game (deal-card-to-player game :player-hand)]
+               (if (busted-hand (:player-hand updated-game))
+                 (do
+                   (render-game updated-game)
+                   (println "Bad Luck -- you lost this hand!")
+                   updated-game)
+                 (do
+                   (render-game updated-game)
+                   (recur updated-game))))))))
 
 (defn dealer-round "The dealers turn of the hand"
   [game]
@@ -135,28 +135,62 @@
           (do
             (Thread/sleep 2000)
             (println "Dealer draws...")
-            (render-hands updated-game)
+            (render-game updated-game)
             (recur updated-game)))
         :else
         (do
-          (render-hands game)
-          (println "Dealer wins the hand!")
-          )))
+          (render-game game)
+          (println "Dealer wins the hand!"))))
     (do
       (println "Dealer bust! You win this hand."))))
 
-
 (defn black-jack "A hand of black-jack"
   []
-  (let [game (deal-opening-hand(new-game))]
+  (let [game (deal-opening-hand (new-game))]
     (do
-      (render-hands game)
+      (render-game game)
       (println "Its your turn... hit/stick")
       (let [player-turn (player-round game)]
         (if (busted-hand (:player-hand player-turn))
           (do
             (println "Dealer wins this hand!"))
           (dealer-round player-turn))))))
+
+;;;;;; GUI STUFF
+
+(defn load-images "load a bunch of images"
+  [files]
+  (->> files
+   (map #(new java.io.File %1))
+   (map #(javax.imageio.ImageIO/read %1))))
+
+
+(defn play-display "mucking about with swing gui and cards"
+  [image-files]
+  (let [images (load-images image-files)
+        panel (game-panel images)
+        frame (javax.swing.JFrame.)]
+    (doto panel
+      (.setFocusable true)
+      (.setBackground (java.awt.Color/GRAY)))
+    (doto frame
+      (.add panel)
+      (.pack)
+      (.setVisible true)
+      (.setDefaultCloseOperation javax.swing.JFrame/DISPOSE_ON_CLOSE))))
+
+(defn draw-image [gfx [xpos image]]
+  (.drawImage gfx image xpos 100 nil))
+
+(defn game-panel [images]
+  (proxy [javax.swing.JPanel] []
+    (paintComponent [g]
+      (proxy-super paintComponent g)
+      (doseq [pos-image (->> images
+                             (map-indexed vector)
+                             (map (fn [[p i]] (vector(* p 20) i))))]
+        (draw-image g pos-image)
+      ))))
 
 (defn -main [& args] ())
 
