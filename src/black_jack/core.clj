@@ -11,13 +11,13 @@
 ;px width of card
 (def card-width 79)
 ;px hieght of card
-(def card-hieght 123)
+(def card-height 123)
 
 ;Standard deck of cards generated in the same order as "cards.png"..no jokers
 (def deck (for [suite [:Clubs :Diamonds :Hearts :Spades] rank (range 1 14)] [rank suite]))
 
 ;cards mapped to cards.png sprite sheet coordinates for later display
-(def card-coord-map (zipmap deck (for [y (range 0 (* 4 card-hieght) card-hieght)
+(def card-coord-map (zipmap deck (for [y (range 0 (* 4 card-height) card-height)
                                        x (range 0 (* 13 card-width) card-width)]
                                    [x y])))
 
@@ -176,16 +176,49 @@
 
 
 ;;;;;;;;;;;GUI SECTION;;;;;;;;;;;
-(defn load-card-images "load the card png"
+(defn load-sprite-sheet "load the card png"
   []
   (let [file (new java.io.File image-file-path)]
    (javax.imageio.ImageIO/read file)))
-    
 
-(defn play-display "mucking about with swing gui and cards"
-  [card]
-  (let [image (load-card-images)
-        panel (game-panel image card)
+(defn hand-to-subimage-coords "translate hand to subimage x and y"
+  [hand]
+  (map card-coord-map hand))
+
+(defn get-subimages "cut the subimages from the spritemap"
+  [coords]
+  (map (fn [[x y]] (.getSubimage (load-sprite-sheet) x y card-width card-height)) coords))
+
+(defn image-x-pos "calculate the range of x positions to draw cards in a hand"
+  [n-cards]
+  (range 10 (* n-cards 20) 20))
+
+(defn draw-hand "Render a players hand"
+  [gfx player hand]
+  (let [nr-cards (count hand)
+        coords (hand-to-subimage-coords hand)
+        subimages (get-subimages coords)
+        to-draw (zipmap subimages (image-x-pos nr-cards))]
+    (if (= player :player-hand) 
+      (doseq [[i p] to-draw]
+      (.drawImage gfx i p 50 nil))
+      (doseq [[i p] to-draw]
+      (.drawImage gfx i p (+ 50 card-height 20) nil)) 
+      )
+    ))
+
+(defn game-panel "Render the game"
+  [game]
+  (proxy [javax.swing.JPanel] []
+    (paintComponent [g]
+      (proxy-super paintComponent g)
+      (draw-hand g :player-hand (:player-hand game))
+      (draw-hand g :dealer-hand (:dealer-hand game))
+      )))
+
+(defn play-display "Render swing gui for blackjack"
+  [game]
+  (let [panel (game-panel game)
         frame (javax.swing.JFrame.)]
     (doto panel
       (.setFocusable true)
@@ -196,17 +229,6 @@
       (.setVisible true)
       (.setDefaultCloseOperation javax.swing.JFrame/DISPOSE_ON_CLOSE))))
 
-(defn draw-image [gfx card image]
-  (let [[x y] (card-coord-map card)
-        subimage (.getSubimage image x y card-width card-hieght)]
-  (.drawImage gfx subimage 10 100 nil)))
-
-(defn game-panel [image card]
-  (proxy [javax.swing.JPanel] []
-    (paintComponent [g]
-      (proxy-super paintComponent g)
-      (draw-image g card image)
-      )))
 
 (defn -main [& args] ())
 
