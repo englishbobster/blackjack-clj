@@ -216,13 +216,25 @@
       (draw-hand g :dealer-hand (:dealer-hand game))
       )))
 
+(def hit-me (proxy [java.awt.event.ActionListener] []
+           (actionPerformed [event] (println (str "button pressed" (.toString event))))))
+   
+
 (defn play-display "Render swing gui for blackjack"
   [game]
   (let [panel (game-panel game)
-        frame (javax.swing.JFrame.)]
+        frame (javax.swing.JFrame.)
+        hit-button (new javax.swing.JButton "HIT")
+        stick-button (new javax.swing.JButton "STICK")]
+    (doto hit-button
+      (.addActionListener hit-me)
+      )
     (doto panel
       (.setFocusable true)
-      (.setBackground (java.awt.Color/GRAY)))
+      (.setBackground (java.awt.Color/GRAY))
+      (.add hit-button)
+      (.add stick-button)
+      )
     (doto frame
       (.add panel)
       (.pack)
