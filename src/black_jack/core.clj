@@ -7,21 +7,22 @@
 ;hearts
 ;spades
 ;jokers and card back
-(def image-file-path "./resources/cards.png")
-;px width of card
-(def card-width 79)
-;px hieght of card
-(def card-height 123)
+(def image-file-path "Image file for all cards"  "./resources/cards.png")
 
-;Standard deck of cards generated in the same order as "cards.png"..no jokers
-(def deck (for [suite [:Clubs :Diamonds :Hearts :Spades] rank (range 1 14)] [rank suite]))
+(def card-width  "card width in pixels" 79)
 
-;cards mapped to cards.png sprite sheet coordinates for later display
-(def card-coord-map (zipmap deck (for [y (range 0 (* 4 card-height) card-height)
-                                       x (range 0 (* 13 card-width) card-width)]
-                                   [x y])))
+(def card-height "card height in pixels" 123)
 
-(defn card-point-value "Calculate card values as tuplet, ace is special case where values differ."
+(def deck "Deck of cards. The suite order matches that in the image file"
+  (for [suite [:Clubs :Diamonds :Hearts :Spades] rank (range 1 14)] [rank suite]))
+
+(def card-coord-map "Image coords zipped with the deck."
+  (zipmap deck (for [y (range 0 (* 4 card-height) card-height)
+                     x (range 0 (* 13 card-width) card-width)]
+                 [x y])))
+
+(defn card-point-value
+  "Calculate card values as tuplet, ace is special case where values differ."
   [card]
   (let [[rank _suite] card]
     (cond
@@ -29,7 +30,8 @@
       (< rank 2) [rank 11]
       :else [10 10])))
 
-(defn card-to-string "Return the card as a string"
+(defn card-to-string
+  "Return the card as a string"
   [card]
   (let [[rank suite] card]
     (cond
@@ -63,11 +65,13 @@
       (let [[card, remainder] (take-random-card deck)]
         (recur remainder (conj acc card))))))
 
-(defn take-card "Take the first card from the deck and return [card, deck minus the card]"
+(defn take-card
+  "Take the first card from the deck and return [card, deck minus the card]"
   [deck] (let [card (first deck)]
            [card (rest deck)]))
 
-(defn deal-card-to-player "Take a card from deck and add it to a hand"
+(defn deal-card-to-player
+  "Take a card from deck and add it to a hand"
   [game player]
   (let [[delt-card remainder] (take-card (:current-deck game))
         player-hand (:player-hand game)
@@ -76,7 +80,8 @@
       (assoc game :current-deck remainder :player-hand (conj player-hand delt-card))
       (assoc game :current-deck remainder :dealer-hand (conj dealer-hand delt-card)))))
 
-(defn deal-opening-hand "Deal opening hand to player and dealer"
+(defn deal-opening-hand
+  "Deal opening hand to player and dealer"
   [game]
   (loop [game game ctr 0]
     (if (= ctr 2)
@@ -85,17 +90,21 @@
             current-game (deal-card-to-player player-deal :dealer-hand)]
         (recur current-game (inc ctr))))))
 
-(defn calculate-points "Calculate hand, ace is high or low. Returns a vector of 2 possible scores."
+(defn calculate-points
+  "Calculate hand, ace is high or low. Returns a vector of 2 possible scores."
   [hand]
   (let [points (reduce (fn [[a b] [c d]] [(+ a c) (+ b d)]) [0 0]
                        (map #(card-point-value %) hand))]
     (map (fn [val] (if (< 21 val) :bust val)) points)))
 
-(defn new-game [] {:current-deck (shuffle-deck deck)
-                   :player-hand []
-                   :dealer-hand []})
+(defn new-game
+  "Prepare the starting game representation"
+  [] {:current-deck (shuffle-deck deck)
+      :player-hand []
+      :dealer-hand []})
 
-(defn hand-to-string "Return the hand as a string with possible points."
+(defn hand-to-string
+  "Return the hand as a string with possible points."
   [hand]
   (let [card-str (string/join ", " (map card-to-string hand))
         [l h] (calculate-points hand)]
@@ -104,45 +113,57 @@
       (= h :bust) (str "cards: " card-str " -- worth: " l)
       :else (str "cards: " card-str " -- worth: " h " or " l))))
 
-(defn render-game "Render the current state of the game"
+(defn render-game
+  "Render the current state of the game"
   [game]
   (let [player-hand (:player-hand game)
         dealer-hand (:dealer-hand game)]
     (println "Your hand -> " (hand-to-string player-hand))
     (println "Dealers hand -> " (hand-to-string dealer-hand))))
 
-(defn busted-hand "Check if a hand is busted"
+(defn busted-hand
+  "Check if a hand is busted"
   [hand]
   (let [[l h] (calculate-points hand)]
     (= l h :bust)))
 
-(defn highest-score "Determine the highest score available among possible scores"
+(defn highest-score
+  "Determine the highest score available among possible scores"
   [score]
   (->> score
        (filter #(not= :bust %))
        (reduce #(if (> %1 %2) %1 %2))))
 
-(defn player-round "The players turn of the hand"
+(defn game-command
+  "Change game state based on player command"
+  [game cmd]
+  (if (= cmd :Stick)
+    game
+    (deal-card-to-player game :player-hand)))
+
+(defn player-round
+  "The players turn of the hand"
   [game]
   (let [cmd (read-line)]
     (if (= cmd "stick")
       game
       (cond
-       (not= cmd "hit")
-       (do
-         (println "what?...you can only stick or hit.")
-         (recur game))
-       :else (let [updated-game (deal-card-to-player game :player-hand)]
-               (if (busted-hand (:player-hand updated-game))
-                 (do
-                   (render-game updated-game)
-                   (println "Bad Luck -- you lost this hand!")
-                   updated-game)
-                 (do
-                   (render-game updated-game)
-                   (recur updated-game))))))))
+        (not= cmd "hit")
+        (do
+          (println "what?...you can only stick or hit.")
+          (recur game))
+        :else (let [updated-game (deal-card-to-player game :player-hand)]
+                (if (busted-hand (:player-hand updated-game))
+                  (do
+                    (render-game updated-game)
+                    (println "Bad Luck -- you lost this hand!")
+                    updated-game)
+                  (do
+                    (render-game updated-game)
+                    (recur updated-game))))))))
 
-(defn dealer-round "The dealers turn of the hand"
+(defn dealer-round
+  "The dealers turn of the hand"
   [game]
   (if (not (busted-hand (:dealer-hand game)))
     (let [highest-value-player (highest-score (calculate-points (:player-hand game)))
@@ -162,7 +183,8 @@
     (do
       (println "Dealer bust! You win this hand."))))
 
-(defn black-jack "A hand of black-jack"
+(defn black-jack
+  "A hand of black-jack"
   []
   (let [game (deal-opening-hand (new-game))]
     (do
@@ -176,10 +198,12 @@
 
 
 ;;;;;;;;;;;GUI SECTION;;;;;;;;;;;
+
+
 (defn load-sprite-sheet "load the card png"
   []
   (let [file (new java.io.File image-file-path)]
-   (javax.imageio.ImageIO/read file)))
+    (javax.imageio.ImageIO/read file)))
 
 (defn hand-to-subimage-coords "translate hand to subimage x and y"
   [hand]
@@ -199,13 +223,11 @@
         coords (hand-to-subimage-coords hand)
         subimages (get-subimages coords)
         to-draw (zipmap subimages (image-x-pos nr-cards))]
-    (if (= player :player-hand) 
+    (if (= player :player-hand)
       (doseq [[i p] to-draw]
-      (.drawImage gfx i p 50 nil))
+        (.drawImage gfx i p 50 nil))
       (doseq [[i p] to-draw]
-      (.drawImage gfx i p (+ 50 card-height 20) nil)) 
-      )
-    ))
+        (.drawImage gfx i p (+ 50 card-height 20) nil)))))
 
 (defn game-panel "Render the game"
   [game]
@@ -213,12 +235,10 @@
     (paintComponent [g]
       (proxy-super paintComponent g)
       (draw-hand g :player-hand (:player-hand game))
-      (draw-hand g :dealer-hand (:dealer-hand game))
-      )))
+      (draw-hand g :dealer-hand (:dealer-hand game)))))
 
 (def hit-me (proxy [java.awt.event.ActionListener] []
-           (actionPerformed [event] (println (str "button pressed" (.toString event))))))
-   
+              (actionPerformed [event] (println "hit-me"))))
 
 (defn play-display "Render swing gui for blackjack"
   [game]
@@ -227,20 +247,17 @@
         hit-button (new javax.swing.JButton "HIT")
         stick-button (new javax.swing.JButton "STICK")]
     (doto hit-button
-      (.addActionListener hit-me)
-      )
+      (.addActionListener hit-me))
     (doto panel
       (.setFocusable true)
       (.setBackground (java.awt.Color/GRAY))
       (.add hit-button)
-      (.add stick-button)
-      )
+      (.add stick-button))
     (doto frame
       (.add panel)
       (.pack)
       (.setVisible true)
       (.setDefaultCloseOperation javax.swing.JFrame/DISPOSE_ON_CLOSE))))
-
 
 (defn -main [& args] ())
 
