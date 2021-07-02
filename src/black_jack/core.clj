@@ -231,23 +231,25 @@
 
 (defn game-panel "Render the game"
   [game]
-  (proxy [javax.swing.JPanel] []
+  (proxy [javax.swing.JPanel java.awt.event.ActionListener] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (draw-hand g :player-hand (:player-hand game))
-      (draw-hand g :dealer-hand (:dealer-hand game)))))
+      (draw-hand g :player-hand (:player-hand @game))
+      (draw-hand g :dealer-hand (:dealer-hand @game)))
+    (actionPerformed [e] (swap! game deal-card-to-player :player-hand)
+      (.repaint this))
 
-(def hit-me (proxy [java.awt.event.ActionListener] []
-              (actionPerformed [event] (println "hit-me"))))
+))
+
 
 (defn play-display "Render swing gui for blackjack"
   [game]
-  (let [panel (game-panel game)
+  (let [panel (game-panel (atom game))
         frame (javax.swing.JFrame.)
         hit-button (new javax.swing.JButton "HIT")
         stick-button (new javax.swing.JButton "STICK")]
     (doto hit-button
-      (.addActionListener hit-me))
+      (.addActionListener panel))
     (doto panel
       (.setFocusable true)
       (.setBackground (java.awt.Color/GRAY))
